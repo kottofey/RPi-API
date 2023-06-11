@@ -81,7 +81,20 @@ public class User extends HttpServlet {
     }
 
     @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response) {
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        PrintWriter pw = response.getWriter();
+        String userID = request.getParameter("userID");
 
+        if (request.getParameter("userID") == null) {
+            response.setStatus(400);
+            pw.println("Неверно указаны параметры");
+        }
+
+        try {
+            String sql = "DELETE FROM testTable WHERE id = " + userID;
+            DBClient.sqlProcess(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
