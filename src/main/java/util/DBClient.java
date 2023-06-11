@@ -29,4 +29,12 @@ public class DBClient {
     public Connection getConnection() {
         return connection;
     }
+
+    public static ResultSet sqlProcess(String sql) throws SQLException {
+        DBClient dbClient = new DBClient();
+        Statement statement = dbClient.getConnection().createStatement();
+        ResultSet rs = statement.executeQuery(sql);
+        statement.close();
+        return rs;
+    }
 }

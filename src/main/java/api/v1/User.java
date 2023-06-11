@@ -1,10 +1,10 @@
 package api.v1;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import util.DBClient;
 import util.Person;
 
 import java.io.IOException;
@@ -33,7 +33,7 @@ public class User extends HttpServlet {
         // {"name": "Roman", "surname": "Lavrov", "email": "email@email.com", "phone": "12345678", "country": "Country", "city": "City", "money": 10902}
         String requestBody = request.getReader().readLine();
         if (requestBody != null && requestBody.charAt(0) == '{') { // json body insert
-                String sql = "INSERT INTO testTable (name, surname, email, phone, country, city, money, cart, owns)\n" +
+                String sql = "INSERT INTO testTable (name, surname, email, phone, country, city, money)\n" +
                              "VALUES (\n" +
                              "           JSON_VALUE('" + requestBody + "', '$.name'),\n" +
                              "           JSON_VALUE('" + requestBody + "', '$.surname'),\n" +
@@ -41,12 +41,10 @@ public class User extends HttpServlet {
                              "           JSON_VALUE('" + requestBody + "', '$.phone'),\n" +
                              "           JSON_VALUE('" + requestBody + "', '$.country'),\n" +
                              "           JSON_VALUE('" + requestBody + "', '$.city'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.money'),\n" +
-                             "           '',\n" +
-                             "           ''\n" +
+                             "           JSON_VALUE('" + requestBody + "', '$.money')\n" +
                              "       )";
             try {
-                Person.sqlProcess(response, sql);
+                DBClient.sqlProcess(sql);
             } catch (SQLException e) {
                 response.setStatus(400);
                 pw.write("Неверно сформирована строка JSON");
@@ -61,14 +59,16 @@ public class User extends HttpServlet {
             String city = request.getParameter("city");
             int money = Integer.parseInt(request.getParameter("money"));
 
-            String valuesString = "'" + name + "','" + surname + "','" + email + "','" + phone + "','" + country + "','" + city + "','" + money + "', '',''";
-            String sql = "        INSERT INTO testTable (name, surname, email, phone, country, city, money, cart, owns)\n" +
-                         "        VALUES (" + valuesString + ")";
+            String valuesString = "'" + name + "','" + surname + "','" + email + "','" + phone + "','" + country + "','" + city + "'," + money;
+            String sql = "INSERT INTO testTable (name, surname, email, phone, country, city, money) " +
+                         "VALUES (" + valuesString + ")";
             try {
-                Person.sqlProcess(response, sql);
+                DBClient.sqlProcess(sql);
             } catch (SQLException e) {
                 response.setStatus(400);
-                pw.write("Неверно указаны параметры");
+                pw.println("Неверно указаны параметры");
+                pw.println("ValuesString: " + valuesString);
+                pw.println("sql: " + sql);
                 e.printStackTrace();
             }
         }

@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 
 public class Person {
@@ -21,8 +19,8 @@ public class Person {
     private String country;
     private String city;
     private int money;
-    private HashSet<String> itemsInCart = new HashSet<>();
-    private HashSet<String> itemsOwns = new HashSet<>();
+    private final HashSet<Integer> itemsInCart = new HashSet<>();
+    private final HashSet<Integer> itemsOwns = new HashSet<>();
 
     public int getMoney() {
         return money;
@@ -88,47 +86,50 @@ public class Person {
         this.city = city;
     }
 
-    public HashSet<String> getItemsInCart() {
-        return itemsInCart;
+    public void setItemsInCart(String itemsToAdd) {
+        String[] str = itemsToAdd.replaceAll(" ", "").split(",");
+        for (String s : str) {
+            this.itemsInCart.add(Integer.parseInt(s));
+        }
     }
 
-    public void setItemsInCart(String itemsInCart) {
-        this.itemsInCart = new HashSet<>(Arrays.asList(itemsInCart.split(",")));
+    public HashSet<Integer> getItemsInCart() {
+        return this.itemsInCart;
     }
 
-    public HashSet<String> getItemsOwns() {
-        return itemsOwns;
+    public void removeItemCart(String itemToRemove) {
+        String[] str = itemToRemove.replaceAll(" ", "").split(",");
+        for (String s : str) {
+            this.itemsInCart.remove(Integer.parseInt(s));
+        }
     }
 
-    public void setItemsOwns(String itemsOwns) {
-        this.itemsOwns = new HashSet<>(Arrays.asList(itemsOwns.split(",")));
+    public void setItemsOwns(String itemsToAdd) {
+        String[] str = itemsToAdd.replaceAll(" ", "").split(",");
+        for (String s : str) {
+            this.itemsOwns.add(Integer.parseInt(s));
+        }
     }
 
-    public void addItemCart(String item) {
-        itemsInCart.add(item);
+    public HashSet<Integer> getItemsOwns() {
+        return this.itemsOwns;
     }
 
-    public void removeItemCart(String item) {
-        itemsInCart.remove(item);
-    }
-
-    public void addItemOwns(String item) {
-        itemsOwns.add(item);
-    }
-
-    public void removeItemOwns(String item) {
-        itemsOwns.add(item);
+    public void removeItemOwns(String itemToRemove) {
+        String[] str = itemToRemove.replaceAll(" ", "").split(",");
+        for (String s : str) {
+            this.itemsOwns.remove(Integer.parseInt(s));
+        }
     }
 
     public static void getPersonsList(HttpServletResponse response, String sql) throws SQLException, IOException {
         PrintWriter pw = response.getWriter();
         response.setContentType("application/json");
-        DBClient dbClient = new DBClient();
         Gson gson = new Gson();
         Person person;
         ArrayList<Person> list = new ArrayList<>();
-        Statement statement = dbClient.getConnection().createStatement();
-        ResultSet resultSet = statement.executeQuery(sql);
+
+        ResultSet resultSet = DBClient.sqlProcess(sql);
 
         while (resultSet.next()) {
             person = new Person();
@@ -145,16 +146,10 @@ public class Person {
 
             list.add(person);
         }
-        statement.close();
         pw.print(gson.toJson(list));
     }
 
-    public static void sqlProcess(HttpServletResponse response, String sql) throws SQLException {
-        DBClient dbClient = new DBClient();
-        Statement statement = dbClient.getConnection().createStatement();
-        statement.executeQuery(sql);
-        statement.close();
-    }
+
 
     private static void prepare(HttpServletResponse response, PrintWriter pw) {
 
