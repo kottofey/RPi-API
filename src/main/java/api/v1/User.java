@@ -87,6 +87,7 @@ public class User extends HttpServlet {
             DBClient.sqlProcess(sql);
         } catch (SQLException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            pw.println("Sql: " + sql);
             pw.println("Ошибка при обработке SQL запроса. Где-то на просторах PUT.");
             e.printStackTrace();
         }

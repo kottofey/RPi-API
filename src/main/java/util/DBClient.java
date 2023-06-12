@@ -76,9 +76,9 @@ public class DBClient {
                     sqlString.append(list.getKey()).append(" = '")
                             .append(list.getValue()).append("', ");
                 }
-                sqlString.delete(sqlString.length() - 2, sqlString.length());
-                sqlString.append(" WHERE id = ").append(paramList.get("userID"));
             }
+            sqlString.delete(sqlString.length() - 2, sqlString.length());
+            sqlString.append(" WHERE id = ").append(paramList.get("userID"));
         } else if (action.equals("INSERT")) {
             sqlString.append("INSERT INTO ").append(table).append(" (");
 
