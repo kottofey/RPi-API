@@ -1,6 +1,10 @@
 package util;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DBClient {
     private final String USER = "kottofey";
@@ -36,5 +40,42 @@ public class DBClient {
         ResultSet rs = statement.executeQuery(sql);
         statement.close();
         return rs;
+    }
+
+    public static HashMap<String, String> getParametersList (HttpServletRequest request) {
+        HashMap<String, String> list = new HashMap<>();
+
+        list.put("userID", request.getParameter("userID"));
+        list.put("name", request.getParameter("name"));
+        list.put("surname", request.getParameter("surname"));
+        list.put("email", request.getParameter("email"));
+        list.put("phone", request.getParameter("phone"));
+        list.put("country", request.getParameter("country"));
+        list.put("city", request.getParameter("city"));
+        list.put("money", request.getParameter("money"));
+
+        return list;
+    }
+
+    public static String buildSQLString (HashMap<String,String> paramList, String action, String table) {
+        StringBuilder sqlString = new StringBuilder();
+
+        switch (action) {
+            case "UPDATE":
+                sqlString.append("UPDATE ").append(table).append(" SET ");
+                break;
+            case "SELECT":
+                break;
+        }
+        for (Map.Entry<String, String> list : paramList.entrySet()) {
+            if (list.getValue() != null && !list.getKey().equals("userID")) {
+                sqlString.append(list.getKey()).append(" = '")
+                        .append(list.getValue()).append("', ");
+            }
+        }
+        sqlString.delete(sqlString.length() - 2, sqlString.length());
+        sqlString.append(" WHERE id = ").append(paramList.get("userID"));
+
+        return sqlString.toString();
     }
 }

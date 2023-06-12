@@ -10,6 +10,7 @@ import util.Person;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.HashMap;
 
 @WebServlet("/user")
 public class User extends HttpServlet {
@@ -65,7 +66,7 @@ public class User extends HttpServlet {
             try {
                 DBClient.sqlProcess(sql);
             } catch (SQLException e) {
-                response.setStatus(400);
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 pw.println("Неверно указаны параметры");
                 pw.println("ValuesString: " + valuesString);
                 pw.println("sql: " + sql);
@@ -76,7 +77,23 @@ public class User extends HttpServlet {
     }
 
     @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response) {
+    protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        PrintWriter pw = response.getWriter();
+
+        HashMap<String, String> list = new HashMap<>(DBClient.getParametersList(request));
+
+        if (list.get("userID") == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            pw.println("Неверно указаны параметры: отсутствует userID");
+            return;
+        }
+        String sql = DBClient.buildSQLString(list, "UPDATE", "testTable");
+        pw.println("sql: " + sql);
+        try {
+            DBClient.sqlProcess(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
@@ -86,8 +103,9 @@ public class User extends HttpServlet {
         String userID = request.getParameter("userID");
 
         if (request.getParameter("userID") == null) {
-            response.setStatus(400);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             pw.println("Неверно указаны параметры");
+            return;
         }
 
         try {
