@@ -1,5 +1,6 @@
 package util;
 
+import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.sql.*;
@@ -42,7 +43,7 @@ public class DBClient {
         return rs;
     }
 
-    public static HashMap<String, String> getParametersList (HttpServletRequest request) {
+    public static HashMap<String, String> getURLParametersList(HttpServletRequest request) {
         HashMap<String, String> list = new HashMap<>();
 
         list.put("userID", request.getParameter("userID"));
@@ -54,27 +55,73 @@ public class DBClient {
         list.put("city", request.getParameter("city"));
         list.put("money", request.getParameter("money"));
 
+        boolean isNull = true;
+        for (Map.Entry<String, String> entry : list.entrySet()) {
+            if (entry.getValue() != null) {
+                return list;
+            }
+        }
+        list.put("empty", "true");
         return list;
     }
 
-    public static String buildSQLString (HashMap<String,String> paramList, String action, String table) {
+    // DONE: URL parameters UPDATE; INSERT with url params
+    public static String buildSQLString(HashMap<String, String> paramList, String action, String table) {
         StringBuilder sqlString = new StringBuilder();
 
-        switch (action) {
-            case "UPDATE":
-                sqlString.append("UPDATE ").append(table).append(" SET ");
-                break;
-            case "SELECT":
-                break;
+        if (action.equals("UPDATE")) {
+            sqlString.append("UPDATE ").append(table).append(" SET ");
+            for (Map.Entry<String, String> list : paramList.entrySet()) {
+                if (list.getValue() != null && !list.getKey().equals("userID")) {
+                    sqlString.append(list.getKey()).append(" = '")
+                            .append(list.getValue()).append("', ");
+                }
+                sqlString.delete(sqlString.length() - 2, sqlString.length());
+                sqlString.append(" WHERE id = ").append(paramList.get("userID"));
+            }
+        } else if (action.equals("INSERT")) {
+            sqlString.append("INSERT INTO ").append(table).append(" (");
+
+            for (Map.Entry<String, String> list : paramList.entrySet()) {
+                if (list.getValue() != null && !list.getKey().equals("userID")) {
+                    sqlString.append(list.getKey()).append(", ");
+                }
+            }
+            sqlString.delete(sqlString.length() - 2, sqlString.length()).append(") VALUES ('");
+            for (Map.Entry<String, String> list : paramList.entrySet()) {
+                if (list.getValue() != null && !list.getKey().equals("userID")) {
+                    sqlString.append(list.getValue()).append("', '");
+                }
+            }
+            sqlString.delete(sqlString.length() - 3, sqlString.length()).append(")");
         }
-        for (Map.Entry<String, String> list : paramList.entrySet()) {
-            if (list.getValue() != null && !list.getKey().equals("userID")) {
-                sqlString.append(list.getKey()).append(" = '")
-                        .append(list.getValue()).append("', ");
+
+        return sqlString.toString();
+    }
+
+    // DONE: JSON string INSERT
+    public static String buildSQLString(JsonObject jsonString, String action, String table) {
+
+        // JSON has been validated in parent method
+        StringBuilder sqlString = new StringBuilder();
+
+        sqlString.append("INSERT INTO ").append(table).append(" (");
+
+        // Add rows
+        for (String key : jsonString.keySet()) {
+            if (!key.isEmpty()) {
+                sqlString.append(key).append(", ");
             }
         }
-        sqlString.delete(sqlString.length() - 2, sqlString.length());
-        sqlString.append(" WHERE id = ").append(paramList.get("userID"));
+        sqlString.delete(sqlString.length() - 2, sqlString.length()).append(") VALUES (");
+
+        // Add values
+        for (String key : jsonString.keySet()) {
+            if (!key.isEmpty()) {
+                sqlString.append(jsonString.get(key)).append(", ");
+            }
+        }
+        sqlString.delete(sqlString.length() - 2, sqlString.length()).append(")");
 
         return sqlString.toString();
     }

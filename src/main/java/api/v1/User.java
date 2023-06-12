@@ -1,5 +1,8 @@
 package api.v1;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,12 +20,14 @@ public class User extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        PrintWriter pw = response.getWriter();
         String userID = request.getParameter("userID");
 
         try {
             String sql = "SELECT * FROM testTable WHERE id = " + userID;
             Person.getPersonsList(response, sql);
         } catch (SQLException e) {
+            pw.write("Ошибка при обработке SQL запроса. Метод GET.");
             e.printStackTrace();
         }
     }
@@ -30,46 +35,37 @@ public class User extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         PrintWriter pw = response.getWriter();
-        // JSON INSERT statement (no 'cart' and 'owns' fields):
-        // {"name": "Roman", "surname": "Lavrov", "email": "email@email.com", "phone": "12345678", "country": "Country", "city": "City", "money": 10902}
+        HashMap<String, String> parametersList = new HashMap<>(DBClient.getURLParametersList(request));
         String requestBody = request.getReader().readLine();
-        if (requestBody != null && requestBody.charAt(0) == '{') { // json body insert
-                String sql = "INSERT INTO testTable (name, surname, email, phone, country, city, money)\n" +
-                             "VALUES (\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.name'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.surname'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.email'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.phone'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.country'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.city'),\n" +
-                             "           JSON_VALUE('" + requestBody + "', '$.money')\n" +
-                             "       )";
-            try {
-                DBClient.sqlProcess(sql);
-            } catch (SQLException e) {
-                response.setStatus(400);
-                pw.write("Неверно сформирована строка JSON");
-                e.printStackTrace();
-            }
-        } else {
-            String name = request.getParameter("name");
-            String surname = request.getParameter("surname");
-            String email = request.getParameter("email");
-            String phone = request.getParameter("phone");
-            String country = request.getParameter("country");
-            String city = request.getParameter("city");
-            int money = Integer.parseInt(request.getParameter("money"));
 
-            String valuesString = "'" + name + "','" + surname + "','" + email + "','" + phone + "','" + country + "','" + city + "'," + money;
-            String sql = "INSERT INTO testTable (name, surname, email, phone, country, city, money) " +
-                         "VALUES (" + valuesString + ")";
+        // trying with json if URL parameters are not present
+        if (parametersList.containsKey("empty") && !requestBody.isEmpty()) {
+//            pw.println("Вставляем из JSON");
+
+            try {
+                JsonObject jsonString = (JsonObject) JsonParser.parseString(requestBody);
+                String sqlString = DBClient.buildSQLString(jsonString, "INSERT", "testTable");
+//                pw.println("sql: " + sqlString);
+
+                try {
+                    DBClient.sqlProcess(sqlString);
+                } catch (SQLException e) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    pw.write("Ошибка при обработке SQL запроса, проверьте заголовки ключей. Метод POST и JSON.");
+                    e.printStackTrace();
+                }
+            } catch (JsonSyntaxException e) { // ловим неправильную строку JSON
+                pw.println("Неверная JSON строка. Проверьте JSON строку и попробуйте ещё раз.");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            }
+        } else {  // proceed with URL parameters
+            String sql = DBClient.buildSQLString(parametersList, "INSERT", "testTable");
             try {
                 DBClient.sqlProcess(sql);
             } catch (SQLException e) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                pw.println("Неверно указаны параметры");
-                pw.println("ValuesString: " + valuesString);
-                pw.println("sql: " + sql);
+                pw.println("!!Ошибка при обработке SQL запроса. Где-то на просторах POST и параметров URL.");
+                pw.println("SQL: " + sql);
                 e.printStackTrace();
             }
         }
@@ -80,19 +76,19 @@ public class User extends HttpServlet {
     protected void doPut(HttpServletRequest request, HttpServletResponse response) throws IOException {
         PrintWriter pw = response.getWriter();
 
-        HashMap<String, String> list = new HashMap<>(DBClient.getParametersList(request));
-
+        HashMap<String, String> list = new HashMap<>(DBClient.getURLParametersList(request));
         if (list.get("userID") == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            pw.println("Неверно указаны параметры: отсутствует userID");
+            pw.println("Неверно указаны параметры: отсутствует userID.");
             return;
         }
         String sql = DBClient.buildSQLString(list, "UPDATE", "testTable");
-        pw.println("sql: " + sql);
         try {
             DBClient.sqlProcess(sql);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            pw.println("Ошибка при обработке SQL запроса. Где-то на просторах PUT.");
+            e.printStackTrace();
         }
 
     }
@@ -112,7 +108,8 @@ public class User extends HttpServlet {
             String sql = "DELETE FROM testTable WHERE id = " + userID;
             DBClient.sqlProcess(sql);
         } catch (SQLException e) {
-            e.printStackTrace();
-        }
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            pw.println("Ошибка при обработке SQL запроса. Где-то на просторах DELETE.");
+            e.printStackTrace();        }
     }
 }
